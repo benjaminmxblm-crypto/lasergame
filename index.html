@@ -94,7 +94,26 @@
 (() => {
   const PHONE = '+33611702312';
   const GOAL = 15, DURATION = 30;
-  const W = 180, H = 270, GUN = { x: 90, y: 258 };
+  const W = 180, H = 270;
+  const SHIP = [
+    '........W........',
+    '.......WCW.......',
+    '.......CPC.......',
+    '......CCPCC......',
+    '......CPPPC......',
+    '.W....CPPPC....W.',
+    '.C...CCCPCCC...C.',
+    '.G..CCGCCCGCC..G.',
+    '.G.CCGGCCCGGCC.G.',
+    '.GCCGGGCCCGGGCCG.',
+    'GGGGGGCCCCCGGGGGG',
+    'GG.DDGCCCCCGDD.GG',
+    'G...DD.CCC.DD...G',
+    '.......DWD.......'
+  ];
+  const PAL = { W: '#FFFFFF', C: '#3EC8FF', P: '#FF4FA3', G: '#39FF6A', D: '#2A3570' };
+  const SHIP_Y = 226;
+  const ship = { x: 90, tx: 90, flash: 0, t: 0 };
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   ctx.imageSmoothingEnabled = false;
@@ -124,7 +143,7 @@
   }
 
   function start() {
-    score = 0; timeLeft = DURATION; targets = []; beams = []; parts = []; popups = [];
+    score = 0; timeLeft = DURATION; ship.x = ship.tx = 90; targets = []; beams = []; parts = []; popups = [];
     spawnIn = 0.3; state = 'play'; show(null);
     $('score').textContent = 0; $('time').textContent = DURATION;
     beep(440, .08); setTimeout(() => beep(660, .08), 90); setTimeout(() => beep(880, .12), 180);
@@ -169,7 +188,9 @@
     const b = cv.getBoundingClientRect();
     const x = (e.clientX - b.left) * W / b.width;
     const y = (e.clientY - b.top) * H / b.height;
-    beams.push({ x, y, life: .12 });
+    ship.tx = Math.max(18, Math.min(W - 18, x));
+    ship.flash = .08;
+    beams.push({ x, y, life: .14 });
     beep(1200, .09, 'square', .035, 300);
     for (let i = targets.length - 1; i >= 0; i--) {
       const t = targets[i];
@@ -203,12 +224,30 @@
     if (t.gold) { ctx.fillStyle = '#0A0E27'; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('9', Math.round(t.x) + .5, Math.round(t.y) + 1); }
   }
 
-  function drawGun() {
-    const g = '#39FF6A', d = '#1C9E43', k = '#111633';
-    px(GUN.x - 14, GUN.y + 2, 28, 10, k);
-    px(GUN.x - 12, GUN.y, 24, 6, d);
-    px(GUN.x - 4, GUN.y - 14, 8, 16, g);
-    px(GUN.x - 2, GUN.y - 18, 4, 4, '#FFFFFF');
+  function drawShip(dt) {
+    const S = 2;
+    ship.t += dt;
+    ship.x += (ship.tx - ship.x) * Math.min(1, dt * 10);
+    const ox = Math.round(ship.x) - 17, oy = SHIP_Y + Math.round(Math.sin(ship.t * 3) * 1.5);
+    // flamme du réacteur
+    const f = 4 + Math.floor(Math.random() * 7);
+    px(ox + 14, oy + 28, 6, f, '#FF4FA3');
+    px(ox + 15, oy + 28, 4, f - 1, '#FFD23F');
+    px(ox + 16, oy + 28, 2, f + 2, '#FFFFFF');
+    px(ox + 7, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
+    px(ox + 24, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
+    // vaisseau
+    for (let r = 0; r < SHIP.length; r++)
+      for (let c = 0; c < SHIP[r].length; c++) {
+        const k = SHIP[r][c];
+        if (k !== '.') px(ox + c * S, oy + r * S, S, S, PAL[k]);
+      }
+    // flash des canons
+    if (ship.flash > 0) {
+      ship.flash -= dt;
+      px(ox, oy + 7, 6, 6, '#FFFFFF'); px(ox + 28, oy + 7, 6, 6, '#FFFFFF');
+    }
+    return { l: { x: ox + 3, y: oy + 10 }, r: { x: ox + 31, y: oy + 10 } };
   }
 
   function frame(ts) {
@@ -229,17 +268,11 @@
       if (timeLeft <= 0) end();
     }
 
-    targets.forEach(t => { t.t += dt; t.x += t.vx * dt; t.y += t.vy * dt + Math.sin(t.t * 4) * .3; if (t.y < 16 || t.y > H - 70) t.vy *= -1; });
+    targets.forEach(t => { t.t += dt; t.x += t.vx * dt; t.y += t.vy * dt + Math.sin(t.t * 4) * .3; if (t.y < 16 || t.y > H - 76) t.vy *= -1; });
     targets = targets.filter(t => t.x > -30 && t.x < W + 30);
     targets.forEach(drawTarget);
 
-    beams.forEach(b => {
-      b.life -= dt;
-      ctx.strokeStyle = 'rgba(57,255,106,' + Math.max(0, b.life / .12) + ')'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(GUN.x, GUN.y - 18); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.lineWidth = 1;
-      px(b.x - 2, b.y - 2, 4, 4, '#FFFFFF');
-    });
-    beams = beams.filter(b => b.life > 0);
+
 
     parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; px(p.x, p.y, 2, 2, p.c); });
     parts = parts.filter(p => p.life > 0);
@@ -247,7 +280,20 @@
     popups.forEach(p => { p.life -= dt; p.y -= 20 * dt; ctx.fillStyle = p.c; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
     popups = popups.filter(p => p.life > 0);
 
-    drawGun();
+    const guns = drawShip(dt);
+    beams.forEach(b => {
+      b.life -= dt;
+      const a = Math.max(0, b.life / .14);
+      [guns.l, guns.r].forEach(g => {
+        ctx.strokeStyle = 'rgba(57,255,106,' + (a * .35) + ')'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(220,255,230,' + a + ')'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      });
+      const s2 = 2 + Math.round(a * 3);
+      px(b.x - s2 / 2, b.y - s2 / 2, s2, s2, '#FFFFFF');
+    });
+    beams = beams.filter(b => b.life > 0);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
