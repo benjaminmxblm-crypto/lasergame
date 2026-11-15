@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Mission Marc – Le jeu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+  :root{--bg:#0A0E27;--neon:#39FF6A;--pink:#FF4FA3;--cyan:#3EC8FF;--gold:#FFD23F;--ink:#FFFFFF}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',monospace;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+  body{display:flex;justify-content:center;align-items:flex-start;min-height:100%}
+  .wrap{width:100%;max-width:480px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .hud{display:flex;justify-content:space-between;font-size:12px;line-height:1.6;padding:8px 10px;border:3px solid var(--neon);border-radius:6px;box-shadow:0 0 12px rgba(57,255,106,.35)}
+  .hud b{color:var(--neon);font-weight:400}
+  .hud .t b{color:var(--pink)}
+  .stage{position:relative;width:100%;aspect-ratio:2/3;border:3px solid var(--cyan);border-radius:6px;overflow:hidden;box-shadow:0 0 16px rgba(62,200,255,.35);touch-action:none}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
+  .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+  .screen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;background:rgba(10,14,39,.92)}
+  .screen[hidden]{display:none}
+  h1{margin:0;font-size:22px;line-height:1.4;color:var(--neon);text-shadow:0 0 10px var(--neon);font-weight:400}
+  h2{margin:0;font-size:16px;line-height:1.5;font-weight:400}
+  p{margin:0;font-size:10px;line-height:1.9}
+  .pink{color:var(--pink)} .cyan{color:var(--cyan)} .gold{color:var(--gold)} .green{color:var(--neon)}
+  label{font-size:10px;line-height:1.6}
+  input{font-family:inherit;font-size:14px;width:100%;max-width:280px;padding:12px;background:#000;color:var(--neon);border:3px solid var(--neon);border-radius:4px;text-align:center;text-transform:uppercase}
+  input:focus{outline:3px solid var(--pink);outline-offset:2px}
+  button,.btn{font-family:inherit;font-size:13px;line-height:1.4;min-height:48px;padding:14px 18px;border:0;border-radius:4px;background:var(--neon);color:#0A0E27;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;width:100%;max-width:300px;box-shadow:0 4px 0 #1C9E43}
+  button:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1C9E43}
+  button:focus-visible,.btn:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+  .btn.alt,button.alt{background:transparent;color:var(--ink);border:3px solid var(--pink);box-shadow:none;font-size:10px}
+  .legend{display:flex;gap:14px;justify-content:center;font-size:9px;line-height:1.6;align-items:center}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
+  .card{width:100%;max-width:320px;border:3px dashed var(--cyan);padding:12px;border-radius:4px}
+  .small{font-size:9px;line-height:1.8}
+  .err{color:var(--pink);font-size:9px;min-height:16px}
+  .info{font-size:9px;line-height:1.9;text-align:center;opacity:.95}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="hud" aria-live="polite">
+    <span>SCORE <b id="score">0</b>/<span id="goal">15</span></span>
+    <span class="t">TEMPS <b id="time">30</b></span>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv" width="180" height="270" aria-label="Zone de tir : touche les cibles"></canvas>
+
+    <!-- Écran d'accueil -->
+    <section class="screen" id="s-start">
+      <p class="pink">★ MISSION SECRÈTE ★</p>
+      <h1>ANNIV<br>DE MARC</h1>
+      <p>Pour confirmer ta venue,<br>réussis l'entraînement&nbsp;!</p>
+      <div class="legend">
+        <span><span class="dot" style="background:#FF4FA3"></span>+1</span>
+        <span><span class="dot" style="background:#FFD23F"></span>+3</span>
+      </div>
+      <p class="cyan">Touche <span id="goal2">15</span> points<br>en 30 secondes</p>
+      <form id="f-start" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
+        <label for="name">Ton prénom, agent&nbsp;:</label>
+        <input id="name" name="name" maxlength="16" autocomplete="given-name" required>
+        <div class="err" id="err" role="alert"></div>
+        <button type="submit">▶ JOUER</button>
+      </form>
+    </section>
+
+    <!-- Défaite -->
+    <section class="screen" id="s-lose" hidden>
+      <h1 class="pink" style="color:var(--pink);text-shadow:0 0 10px var(--pink)">RATÉ&nbsp;!</h1>
+      <h2>Score&nbsp;: <span id="lose-score">0</span></h2>
+      <p>Il te faut <span class="green" id="goal3">15</span> points.<br>Vise bien, agent&nbsp;!</p>
+      <button type="button" id="retry">↻ REJOUER</button>
+    </section>
+
+    <!-- Victoire -->
+    <section class="screen" id="s-win" hidden>
+      <h1>MISSION<br>RÉUSSIE&nbsp;!</h1>
+      <p>Bravo agent <span class="gold" id="win-name"></span>&nbsp;!<br>Score&nbsp;: <span id="win-score">0</span></p>
+      <div class="card">
+        <p class="info">Samedi 12 décembre<br>de 14h à 17h<br>Zone Évasion – Shoot &amp; Games<br>Avignonet-Lauragais</p>
+      </div>
+      <a class="btn" id="sms-yes" href="#">✔ JE CONFIRME</a>
+      <a class="btn alt" id="sms-no" href="#">Je ne pourrai pas venir</a>
+      <p class="small">Ça ouvre un SMS déjà écrit.<br>Il suffit d'appuyer sur Envoyer.<br>Sinon, écris au <span class="green">06 11 70 23 12</span></p>
+      <button type="button" class="alt" id="replay" style="max-width:200px">↻ Rejouer</button>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const PHONE = '+33611702312';
+  const GOAL = 15, DURATION = 30;
+  const W = 180, H = 270, GUN = { x: 90, y: 258 };
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const $ = (id) => document.getElementById(id);
+  ['goal','goal2','goal3'].forEach(id => $(id).textContent = GOAL);
+
+  let state = 'menu', name = '', score = 0, timeLeft = DURATION;
+  let targets = [], beams = [], parts = [], popups = [], spawnIn = 0, last = 0;
+  const stars = Array.from({length: 40}, () => ({ x: Math.random()*W, y: Math.random()*H, s: Math.random() < .2 ? 2 : 1, v: 4 + Math.random()*10 }));
+
+  // ---- Sons rétro (facultatifs) ----
+  let ac = null;
+  function beep(freq, dur, type, vol, slide) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'square'; o.frequency.value = freq;
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, ac.currentTime + dur);
+      g.gain.value = vol || 0.05;
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) {}
+  }
+
+  function show(id) {
+    ['s-start','s-lose','s-win'].forEach(s => $(s).hidden = (s !== id));
+  }
+
+  function start() {
+    score = 0; timeLeft = DURATION; targets = []; beams = []; parts = []; popups = [];
+    spawnIn = 0.3; state = 'play'; show(null);
+    $('score').textContent = 0; $('time').textContent = DURATION;
+    beep(440, .08); setTimeout(() => beep(660, .08), 90); setTimeout(() => beep(880, .12), 180);
+  }
+
+  function spawn() {
+    const gold = Math.random() < 0.15;
+    const r = gold ? 9 : 13;
+    const fromLeft = Math.random() < .5;
+    const speed = (gold ? 34 : 18) + Math.random() * 18 + (DURATION - timeLeft) * 0.6;
+    targets.push({
+      x: fromLeft ? -r : W + r,
+      y: 24 + Math.random() * (H - 110),
+      vx: (fromLeft ? 1 : -1) * speed,
+      vy: (Math.random() - .5) * 14,
+      r, gold, t: 0
+    });
+  }
+
+  function end() {
+    state = 'over';
+    if (score >= GOAL) {
+      $('win-name').textContent = name;
+      $('win-score').textContent = score;
+      const yes = `Agent ${name} confirme sa présence à l'anniversaire de Marc le samedi 12 décembre de 14h à 17h ! (score : ${score})`;
+      const no  = `Agent ${name} ne pourra pas venir à l'anniversaire de Marc le 12 décembre. Désolé !`;
+      $('sms-yes').href = `sms:${PHONE}?&body=${encodeURIComponent(yes)}`;
+      $('sms-no').href  = `sms:${PHONE}?&body=${encodeURIComponent(no)}`;
+      show('s-win');
+      [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .15, 'square', .06), i * 130));
+    } else {
+      $('lose-score').textContent = score;
+      show('s-lose');
+      beep(300, .4, 'sawtooth', .05, 80);
+    }
+  }
+
+  // ---- Tir ----
+  cv.addEventListener('pointerdown', (e) => {
+    if (state !== 'play') return;
+    e.preventDefault();
+    const b = cv.getBoundingClientRect();
+    const x = (e.clientX - b.left) * W / b.width;
+    const y = (e.clientY - b.top) * H / b.height;
+    beams.push({ x, y, life: .12 });
+    beep(1200, .09, 'square', .035, 300);
+    for (let i = targets.length - 1; i >= 0; i--) {
+      const t = targets[i];
+      if (Math.hypot(t.x - x, t.y - y) <= t.r + 4) {
+        const pts = t.gold ? 3 : 1;
+        score += pts;
+        $('score').textContent = score;
+        popups.push({ x: t.x, y: t.y, txt: '+' + pts, life: .7, c: t.gold ? '#FFD23F' : '#39FF6A' });
+        for (let k = 0; k < 14; k++) {
+          const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 60;
+          parts.push({ x: t.x, y: t.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5, c: t.gold ? '#FFD23F' : (k % 2 ? '#FF4FA3' : '#FFFFFF') });
+        }
+        targets.splice(i, 1);
+        beep(t.gold ? 980 : 520, .12, 'triangle', .07, t.gold ? 1600 : 900);
+        if (score >= GOAL && timeLeft > 0) { /* on laisse finir le chrono pour le fun */ }
+        break;
+      }
+    }
+  }, { passive: false });
+
+  // ---- Dessin ----
+  function px(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+
+  function drawTarget(t) {
+    const c1 = t.gold ? '#FFD23F' : '#FF4FA3', c2 = '#FFFFFF';
+    const rings = t.gold ? [t.r, t.r * .55] : [t.r, t.r * .68, t.r * .36];
+    rings.forEach((r, i) => {
+      ctx.fillStyle = i % 2 ? c2 : c1;
+      ctx.beginPath(); ctx.arc(Math.round(t.x), Math.round(t.y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill();
+    });
+    if (t.gold) { ctx.fillStyle = '#0A0E27'; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('9', Math.round(t.x) + .5, Math.round(t.y) + 1); }
+  }
+
+  function drawGun() {
+    const g = '#39FF6A', d = '#1C9E43', k = '#111633';
+    px(GUN.x - 14, GUN.y + 2, 28, 10, k);
+    px(GUN.x - 12, GUN.y, 24, 6, d);
+    px(GUN.x - 4, GUN.y - 14, 8, 16, g);
+    px(GUN.x - 2, GUN.y - 18, 4, 4, '#FFFFFF');
+  }
+
+  function frame(ts) {
+    const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
+
+    // fond
+    px(0, 0, W, H, '#0A0E27');
+    stars.forEach(s => { s.y += s.v * dt; if (s.y > H) { s.y = 0; s.x = Math.random() * W; } px(s.x, s.y, s.s, s.s, s.s > 1 ? '#3EC8FF' : '#56608F'); });
+    // sol quadrillé
+    for (let i = 0; i < 6; i++) { const y = H - 40 + i * i * 1.6; px(0, y, W, 1, 'rgba(57,255,106,.25)'); }
+    for (let i = -6; i <= 6; i++) { ctx.strokeStyle = 'rgba(57,255,106,.18)'; ctx.beginPath(); ctx.moveTo(W / 2 + i * 6, H - 40); ctx.lineTo(W / 2 + i * 34, H); ctx.stroke(); }
+
+    if (state === 'play') {
+      timeLeft -= dt;
+      $('time').textContent = Math.max(0, Math.ceil(timeLeft));
+      spawnIn -= dt;
+      if (spawnIn <= 0 && targets.length < 5) { spawn(); spawnIn = 0.45 + Math.random() * 0.45; }
+      if (timeLeft <= 0) end();
+    }
+
+    targets.forEach(t => { t.t += dt; t.x += t.vx * dt; t.y += t.vy * dt + Math.sin(t.t * 4) * .3; if (t.y < 16 || t.y > H - 70) t.vy *= -1; });
+    targets = targets.filter(t => t.x > -30 && t.x < W + 30);
+    targets.forEach(drawTarget);
+
+    beams.forEach(b => {
+      b.life -= dt;
+      ctx.strokeStyle = 'rgba(57,255,106,' + Math.max(0, b.life / .12) + ')'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(GUN.x, GUN.y - 18); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.lineWidth = 1;
+      px(b.x - 2, b.y - 2, 4, 4, '#FFFFFF');
+    });
+    beams = beams.filter(b => b.life > 0);
+
+    parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; px(p.x, p.y, 2, 2, p.c); });
+    parts = parts.filter(p => p.life > 0);
+
+    popups.forEach(p => { p.life -= dt; p.y -= 20 * dt; ctx.fillStyle = p.c; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
+    popups = popups.filter(p => p.life > 0);
+
+    drawGun();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---- Écrans ----
+  $('f-start').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = $('name').value.trim();
+    if (!v) { $('err').textContent = 'Écris ton prénom !'; return; }
+    $('err').textContent = '';
+    name = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+    $('name').blur();
+    start();
+  });
+  $('retry').addEventListener('click', start);
+  $('replay').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
