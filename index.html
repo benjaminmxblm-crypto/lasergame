@@ -3,28 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Mission Marc – Le jeu</title>
+<title>Mission Marc – Laser Game</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 <style>
-  :root{--bg:#0A0E27;--neon:#39FF6A;--pink:#FF4FA3;--cyan:#3EC8FF;--gold:#FFD23F;--ink:#FFFFFF}
+  :root{--bg:#0A0E27;--neon:#39FF6A;--pink:#FF4FA3;--cyan:#3EC8FF;--gold:#FFD23F;--red:#FF3B4E;--ink:#FFFFFF}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',monospace;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
   body{display:flex;justify-content:center;align-items:flex-start;min-height:100%}
-  .wrap{width:100%;max-width:480px;padding:12px;display:flex;flex-direction:column;gap:10px}
-  .hud{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;line-height:1.6;padding:8px 10px;border:3px solid var(--neon);border-radius:6px;box-shadow:0 0 12px rgba(57,255,106,.35)}
+  .wrap{width:100%;max-width:480px;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:8px;font-size:10px;line-height:1.6;padding:8px 10px;border:3px solid var(--neon);border-radius:6px;box-shadow:0 0 12px rgba(57,255,106,.35)}
+  .hud > span:nth-child(2){text-align:center} .hud > span:nth-child(3){text-align:right}
   .hud b{color:var(--neon);font-weight:400}
-  .hud .c b{color:var(--gold)}
-  .hud .t b{color:var(--pink)}
+  .hud .c b{color:var(--gold)} .hud .t b{color:var(--pink)}
+  .hud .row2{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:8px}
+  .pips{display:inline-flex;gap:3px;vertical-align:middle;margin-left:6px}
+  .pip{width:10px;height:10px;background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+  .pip.off{background:#2A3570;box-shadow:none}
+  .ammo .pip{width:5px;height:12px;background:var(--neon);box-shadow:0 0 5px var(--neon)}
+  .ammo .pip.off{background:#2A3570;box-shadow:none}
+  .reload{color:var(--gold)}
   .stage{position:relative;width:100%;aspect-ratio:2/3;border:3px solid var(--cyan);border-radius:6px;overflow:hidden;box-shadow:0 0 16px rgba(62,200,255,.35);touch-action:none}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
-  .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
-  .screen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;text-align:center;background:rgba(10,14,39,.94);overflow-y:auto}
+  .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
+  .screen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;background:rgba(10,14,39,.94);overflow-y:auto}
   .screen[hidden]{display:none}
-  h1{margin:0;font-size:22px;line-height:1.4;color:var(--neon);text-shadow:0 0 10px var(--neon);font-weight:400}
-  h2{margin:0;font-size:15px;line-height:1.5;font-weight:400}
+  h1{margin:0;font-size:21px;line-height:1.4;color:var(--neon);text-shadow:0 0 10px var(--neon);font-weight:400}
+  h2{margin:0;font-size:14px;line-height:1.5;font-weight:400}
   p{margin:0;font-size:10px;line-height:1.9}
-  .pink{color:var(--pink)} .cyan{color:var(--cyan)} .gold{color:var(--gold)} .green{color:var(--neon)}
+  .pink{color:var(--pink)} .cyan{color:var(--cyan)} .gold{color:var(--gold)} .green{color:var(--neon)} .red{color:var(--red)}
   label{font-size:10px;line-height:1.6}
   input{font-family:inherit;font-size:14px;width:100%;max-width:280px;padding:12px;background:#000;color:var(--neon);border:3px solid var(--neon);border-radius:4px;text-align:center;text-transform:uppercase}
   input:focus{outline:3px solid var(--pink);outline-offset:2px}
@@ -32,14 +39,15 @@
   button:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1C9E43}
   button:focus-visible,.btn:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
   .alt{background:transparent!important;color:var(--ink)!important;border:3px solid var(--pink)!important;box-shadow:none!important;font-size:10px!important}
-  .gold-btn{background:var(--gold);box-shadow:0 4px 0 #B8901A}
-  .legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:320px;font-size:8px;line-height:1.7}
+  .legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:330px;font-size:8px;line-height:1.7}
   .legend div{display:flex;flex-direction:column;align-items:center;gap:6px}
-  .dot{display:inline-block;width:16px;height:16px;border-radius:50%}
-  .card{width:100%;max-width:320px;border:3px dashed var(--cyan);padding:12px;border-radius:4px}
+  .vest{width:18px;height:22px;border-radius:4px 4px 2px 2px;position:relative}
+  .vest::after{content:"";position:absolute;left:6px;top:7px;width:6px;height:6px;background:#fff;box-shadow:0 0 6px #fff}
+  .card{width:100%;max-width:320px;border:3px dashed var(--cyan);padding:10px;border-radius:4px}
   .small{font-size:9px;line-height:1.8}
   .err{color:var(--pink);font-size:9px;min-height:16px}
   .info{font-size:9px;line-height:1.9;text-align:center}
+  .stats{display:flex;gap:16px;justify-content:center;font-size:9px;line-height:1.8}
   ol.board{list-style:none;margin:0;padding:0;width:100%;max-width:320px;display:flex;flex-direction:column;gap:6px}
   ol.board li{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;font-size:10px;line-height:1.6;padding:8px 10px;border:2px solid #2A3570;border-radius:4px;text-align:left}
   ol.board li.me{border-color:var(--neon);box-shadow:0 0 10px rgba(57,255,106,.4)}
@@ -57,23 +65,27 @@
     <span>SCORE <b id="score">0</b></span>
     <span class="c">COMBO <b id="combo">x1</b></span>
     <span class="t">TEMPS <b id="time">30</b></span>
+    <div class="row2">
+      <span>BOUCLIER<span class="pips" id="shields"></span></span>
+      <span>LASER<span class="pips ammo" id="ammo"></span></span>
+    </div>
   </div>
 
   <div class="stage">
-    <canvas id="cv" width="180" height="270" aria-label="Zone de tir : touche les cibles"></canvas>
+    <canvas id="cv" width="180" height="270" aria-label="Arène de laser game : touche les gilets des adversaires"></canvas>
 
     <!-- Accueil -->
     <section class="screen" id="s-start">
       <p class="pink">★ MISSION SECRÈTE ★</p>
-      <h1>ANNIV<br>DE MARC</h1>
+      <h1>LASER GAME<br>DE MARC</h1>
       <p>Marque <span class="green" id="goal-a">25</span> points en 30 s<br>pour confirmer ta venue&nbsp;!</p>
       <div class="legend">
-        <div><span class="dot" style="background:#FF4FA3"></span>CIBLE<br>+1</div>
-        <div><span class="dot" style="background:#FFD23F"></span>BONUS 9<br>+3</div>
-        <div><span class="dot" style="background:#3EC8FF;box-shadow:inset 0 0 0 4px #fff"></span>ALLIÉ<br><span class="pink">−3</span></div>
+        <div><span class="vest" style="background:#FF4FA3"></span>ADVERSAIRE<br>+1</div>
+        <div><span class="vest" style="background:#FFD23F"></span>MARC<br>+3</div>
+        <div><span class="vest" style="background:#39FF6A"></span>ÉQUIPIER<br><span class="pink">−3</span></div>
       </div>
-      <p class="small cyan">Enchaîne sans rater :<br>COMBO x2, x3, x4&nbsp;!</p>
-      <form id="f-start" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
+      <p class="small cyan">Vise le gilet&nbsp;! Si leur visière<br>devient <span class="red">rouge</span>, ils vont tirer.<br>3 boucliers · 10 tirs par chargeur</p>
+      <form id="f-start" style="display:flex;flex-direction:column;align-items:center;gap:8px;width:100%">
         <label for="name">Ton prénom, agent&nbsp;:</label>
         <input id="name" name="name" maxlength="16" autocomplete="given-name" required>
         <div class="err" id="err" role="alert"></div>
@@ -84,10 +96,11 @@
 
     <!-- Défaite -->
     <section class="screen" id="s-lose" hidden>
-      <h1 style="color:var(--pink);text-shadow:0 0 10px var(--pink)">RATÉ&nbsp;!</h1>
+      <h1 style="color:var(--pink);text-shadow:0 0 10px var(--pink)" id="lose-title">RATÉ&nbsp;!</h1>
       <h2>Score&nbsp;: <span id="lose-score">0</span></h2>
+      <div class="stats"><span>Précision <span class="cyan" id="lose-acc">0%</span></span><span>Touchés <span class="cyan" id="lose-hits">0</span></span></div>
       <p class="rank" id="lose-rank"></p>
-      <p>Il te faut <span class="green" id="goal-b">25</span> points.<br>Vise bien, évite les alliés&nbsp;!</p>
+      <p>Il te faut <span class="green" id="goal-b">25</span> points.<br>Vise les gilets, épargne tes équipiers&nbsp;!</p>
       <button type="button" id="retry">↻ REJOUER</button>
       <button type="button" class="alt open-board">CLASSEMENT</button>
       <a class="small cyan" id="skip" href="#" hidden>Trop dur&nbsp;? Confirmer quand même</a>
@@ -97,13 +110,14 @@
     <section class="screen" id="s-win" hidden>
       <h1>MISSION<br>RÉUSSIE&nbsp;!</h1>
       <p>Bravo agent <span class="gold" id="win-name"></span>&nbsp;!<br>Score&nbsp;: <span id="win-score">0</span></p>
+      <div class="stats"><span>Précision <span class="cyan" id="win-acc">0%</span></span><span>Touchés <span class="cyan" id="win-hits">0</span></span></div>
       <p class="rank" id="win-rank"></p>
       <div class="card">
-        <p class="info">Samedi 12 décembre<br>de 14h à 17h<br>Zone Évasion – Shoot &amp; Games<br>Avignonet-Lauragais</p>
+        <p class="info">Samedi 12 décembre · 14h à 17h<br>Zone Évasion – Shoot &amp; Games<br>Avignonet-Lauragais</p>
       </div>
       <a class="btn" id="sms-yes" href="#">✔ JE CONFIRME</a>
       <a class="btn alt" id="sms-no" href="#">Je ne pourrai pas venir</a>
-      <p class="small">Ça ouvre un SMS déjà écrit&nbsp;:<br>appuie sur Envoyer.<br>Sinon, écris au <span class="green">06 11 70 23 12</span></p>
+      <p class="small">Ça ouvre un SMS déjà écrit&nbsp;: appuie sur Envoyer.<br>Sinon, écris au <span class="green">06 11 70 23 12</span></p>
       <div style="display:flex;gap:10px;width:100%;max-width:300px">
         <button type="button" class="alt" id="replay">↻ Rejouer</button>
         <button type="button" class="alt open-board">Classement</button>
@@ -112,7 +126,7 @@
 
     <!-- Classement -->
     <section class="screen" id="s-board" hidden style="justify-content:flex-start">
-      <h1 class="gold" style="color:var(--gold);text-shadow:0 0 10px var(--gold);margin-top:6px">CLASSEMENT</h1>
+      <h1 style="color:var(--gold);text-shadow:0 0 10px var(--gold);margin-top:6px">CLASSEMENT</h1>
       <p class="small green" id="board-thanks" hidden></p>
       <p class="small cyan">Meilleur score de chaque agent</p>
       <p class="small" id="board-msg" role="status">Chargement…</p>
@@ -125,45 +139,67 @@
 <script>
 (() => {
   // ====== RÉGLAGES ======
-  // Colle ici l'adresse de ton script Google (finit par /exec) pour activer le classement :
   const SCORES_URL = 'https://script.google.com/macros/s/AKfycbz9KSzOODgQ88HMPDQoek_z3Ibzyv9_EBp8CWva-hTVBkfhqdotapZl2wyihw4rTpVJ/exec';
   const PHONE = '+33611702312';
-  const GOAL = 25, DURATION = 30;
+  const GOAL = 25, DURATION = 30, SHIELDS = 3, CLIP = 10, RELOAD = 1.0;
   // ======================
 
-  const W = 180, H = 270;
+  const W = 180, H = 270, HORIZON = 78;
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   const $ = (id) => document.getElementById(id);
   ['goal-a','goal-b'].forEach(id => $(id).textContent = GOAL);
 
-  const SHIP = [
-    '........W........',
-    '.......WCW.......',
-    '.......CPC.......',
-    '......CCPCC......',
-    '......CPPPC......',
-    '.W....CPPPC....W.',
-    '.C...CCCPCCC...C.',
-    '.G..CCGCCCGCC..G.',
-    '.G.CCGGCCCGGCC.G.',
-    '.GCCGGGCCCGGGCCG.',
-    'GGGGGGCCCCCGGGGGG',
-    'GG.DDGCCCCCGDD.GG',
-    'G...DD.CCC.DD...G',
-    '.......DWD.......'
+  // ---- Sprites ----
+  const PLAYER = [
+    '...HHHHHH...',
+    '..HHHHHHHH..',
+    '..HMMMMMMH..',
+    '..HMMMMMMH..',
+    '...HHHHHH...',
+    '....KKKK....',
+    '.AAVVVVVVAA.',
+    'AAVVVVVVVVAA',
+    'AAVVVXXVVVAA',
+    'KAVVVXXVVVAK',
+    'K.VVVVVVVV.K',
+    '..VVVVVVVV..',
+    '...PPPPPP...',
+    '...PP..PP...'
   ];
-  const HEART = ['.PP.PP.', 'PPPPPPP', 'PPPPPPP', '.PPPPP.', '..PPP..', '...P...'];
-  const PAL = { W: '#FFFFFF', C: '#3EC8FF', P: '#FF4FA3', G: '#39FF6A', D: '#2A3570' };
-  const SHIP_Y = 226;
-  const ship = { x: 90, tx: 90, flash: 0, t: 0 };
+  const GUN = [
+    '.......RRR.......',
+    '......DDDDD......',
+    '......DGGGD......',
+    '.....DDGWGDD.....',
+    '.....DGGGGGD.....',
+    '....DDGGGGGDD....',
+    '....DGGCCCGGD....',
+    '...DDGGGGGGGDD...',
+    '...DGGGGGGGGGD...',
+    '..DKKDDDDDDDKKD..',
+    '.DKKKKD...DKKKKD.',
+    '.DKKKKD...DKKKKD.',
+    '..DKKD.....DKKD..'
+  ];
+  const VEST = { enemy: '#FF4FA3', marc: '#FFD23F', mate: '#39FF6A' };
+
+  // ---- Arène : obstacles gonflables ----
+  const BUNKERS = [
+    { x: 32, base: 120, w: 26, h: 30, s: 1 },
+    { x: 90, base: 116, w: 26, h: 30, s: 1 },
+    { x: 148, base: 120, w: 26, h: 30, s: 1 },
+    { x: 48, base: 196, w: 42, h: 50, s: 2 },
+    { x: 132, base: 196, w: 42, h: 50, s: 2 }
+  ];
 
   let state = 'menu', name = '', score = 0, combo = 0, timeLeft = DURATION, fails = 0, lastScreen = 's-start';
-  let targets = [], beams = [], parts = [], popups = [], spawnIn = 0, last = 0, shake = 0;
-  const stars = Array.from({length: 40}, () => ({ x: Math.random()*W, y: Math.random()*H, s: Math.random() < .2 ? 2 : 1, v: 4 + Math.random()*10 }));
+  let shields = SHIELDS, ammo = CLIP, reloading = 0, shots = 0, hits = 0, endReason = '';
+  let foes = [], beams = [], parts = [], popups = [], enemyShots = [], spawnIn = 0, last = 0, shake = 0, redFlash = 0, gunX = 90, gunTx = 90, gunKick = 0;
+  const haze = Array.from({length: 7}, () => ({ x: Math.random() * W, y: HORIZON + Math.random() * 120, r: 18 + Math.random() * 22, v: 3 + Math.random() * 5 }));
 
-  // ---- Sons rétro ----
+  // ---- Sons ----
   let ac = null;
   function beep(freq, dur, type, vol, slide) {
     try {
@@ -183,61 +219,65 @@
   }
 
   const mult = () => Math.min(4, 1 + Math.floor(combo / 5));
+  function pips(el, n, max) {
+    if (el.children.length !== max) { el.textContent = ''; for (let i = 0; i < max; i++) { const d = document.createElement('i'); d.className = 'pip'; el.append(d); } }
+    [...el.children].forEach((d, i) => d.classList.toggle('off', i >= n));
+  }
   function setHud() {
     $('score').textContent = score;
     $('combo').textContent = 'x' + mult();
+    pips($('shields'), shields, SHIELDS);
+    pips($('ammo'), reloading > 0 ? 0 : ammo, CLIP);
   }
 
   function start() {
-    score = 0; combo = 0; timeLeft = DURATION; ship.x = ship.tx = 90;
-    targets = []; beams = []; parts = []; popups = [];
-    spawnIn = 0.3; state = 'play'; show(null); setHud();
+    score = 0; combo = 0; timeLeft = DURATION; shields = SHIELDS; ammo = CLIP; reloading = 0; shots = 0; hits = 0;
+    foes = []; beams = []; parts = []; popups = []; enemyShots = []; redFlash = 0; gunX = gunTx = 90;
+    spawnIn = 0.4; state = 'play'; show(null); setHud();
     $('time').textContent = DURATION;
     beep(440, .08); setTimeout(() => beep(660, .08), 90); setTimeout(() => beep(880, .12), 180);
   }
 
-  // ---- Cibles : plus petites, plus rapides, et des alliés à ne pas toucher ----
+  // ---- Joueurs qui surgissent derrière les obstacles ----
   function spawn() {
     const elapsed = DURATION - timeLeft;
+    const free = BUNKERS.map((b, i) => i).filter(i => !foes.some(f => f.b === i));
+    if (!free.length) return;
+    const b = free[Math.floor(Math.random() * free.length)];
     const roll = Math.random();
-    const kind = roll < 0.12 ? 'gold' : roll < 0.32 ? 'ally' : 'pink';
-    const r = kind === 'gold' ? 7 : 10;
-    const fromLeft = Math.random() < .5;
-    const base = kind === 'gold' ? 55 : 30;
-    const speed = base + Math.random() * 25 + elapsed * 1.6;
-    targets.push({
-      x: fromLeft ? -r : W + r,
-      y: 24 + Math.random() * (H - 120),
-      vx: (fromLeft ? 1 : -1) * speed,
-      vy: (Math.random() - .5) * (20 + elapsed),
-      wob: 0.3 + Math.random() * (kind === 'gold' ? 1.4 : 0.8),
-      r, kind, t: 0
+    const kind = roll < 0.13 ? 'marc' : roll < 0.35 ? 'mate' : 'enemy';
+    const aimAt = Math.max(0.75, 1.5 - elapsed * 0.025);
+    foes.push({
+      b, kind, t: 0, phase: 'up', up: 0,
+      stay: kind === 'marc' ? 0.8 : kind === 'mate' ? 1.6 : aimAt,
+      aim: Math.max(0.55, 0.95 - elapsed * 0.012), side: Math.random() < .5 ? -1 : 1
     });
+  }
+
+  function foeBox(f) {
+    const B = BUNKERS[f.b], s = B.s, sw = 12 * s, sh = 14 * s;
+    const hiddenTop = B.base - sh;
+    const shownTop = B.base - B.h - 12 * s;
+    const top = Math.round(hiddenTop + (shownTop - hiddenTop) * f.up);
+    const left = Math.round(B.x - sw / 2 + f.side * 2 * s * f.up);
+    return { left, top, w: sw, h: Math.max(0, (B.base - B.h + 3 * s) - top), s, B };
   }
 
   // ---- Classement (Google Sheet) ----
   function cleanName(n) { return String(n || '').replace(/[^\p{L}\p{N} '\-]/gu, '').trim().slice(0, 16); }
-
   async function sendScore(n, s) {
     if (!SCORES_URL) return null;
-    try {
-      const res = await fetch(SCORES_URL, { method: 'POST', body: JSON.stringify({ name: n, score: s }) });
-      return await res.json();
-    } catch (e) { return null; }
-  }
-
-  async function loadBoard() {
-    if (!SCORES_URL) return null;
-    try { const res = await fetch(SCORES_URL); return await res.json(); }
+    try { const res = await fetch(SCORES_URL, { method: 'POST', body: JSON.stringify({ name: n, score: s }) }); return await res.json(); }
     catch (e) { return null; }
   }
-
+  async function loadBoard() {
+    if (!SCORES_URL) return null;
+    try { const res = await fetch(SCORES_URL); return await res.json(); } catch (e) { return null; }
+  }
   function rankOf(list, n) {
     if (!list || !list.scores) return 0;
-    const i = list.scores.findIndex(x => cleanName(x.name).toLowerCase() === n.toLowerCase());
-    return i + 1;
+    return list.scores.findIndex(x => cleanName(x.name).toLowerCase() === n.toLowerCase()) + 1;
   }
-
   function renderBoard(data) {
     const ol = $('board'); ol.textContent = '';
     if (!SCORES_URL) { $('board-msg').textContent = 'Classement pas encore activé.'; return; }
@@ -253,7 +293,6 @@
       li.append(rk, nm, sc); ol.append(li);
     });
   }
-
   async function openBoard() {
     show('s-board');
     $('board').textContent = '';
@@ -261,19 +300,16 @@
     renderBoard(await loadBoard());
   }
   document.querySelectorAll('.open-board').forEach(b => b.addEventListener('click', () => { $('board-thanks').hidden = true; openBoard(); }));
+  $('board-back').addEventListener('click', () => show(lastScreen));
 
-  // Après la réponse (SMS), on affiche directement le classement
   function afterReply(coming) {
     const t = $('board-thanks');
-    t.textContent = coming
-      ? `Merci agent ${name} ! N'oublie pas d'envoyer le SMS.`
-      : `Dommage ${name} ! N'oublie pas d'envoyer le SMS.`;
+    t.textContent = coming ? `Merci agent ${name} ! N'oublie pas d'envoyer le SMS.` : `Dommage ${name} ! N'oublie pas d'envoyer le SMS.`;
     t.hidden = false;
     setTimeout(openBoard, 300);
   }
   $('sms-yes').addEventListener('click', () => afterReply(true));
   $('sms-no').addEventListener('click', () => afterReply(false));
-  $('board-back').addEventListener('click', () => show(lastScreen));
 
   function setSms() {
     const yes = `Agent ${name} confirme sa présence à l'anniversaire de Marc le samedi 12 décembre de 14h à 17h ! (score : ${score})`;
@@ -285,29 +321,43 @@
   async function end() {
     state = 'over';
     const won = score >= GOAL;
+    const acc = shots ? Math.round(hits * 100 / shots) + '%' : '0%';
     const rankEl = won ? $('win-rank') : $('lose-rank');
     rankEl.textContent = SCORES_URL ? 'Envoi du score…' : '';
     if (won) {
       $('win-name').textContent = name; $('win-score').textContent = score;
+      $('win-acc').textContent = acc; $('win-hits').textContent = hits;
       setSms(); show('s-win');
       [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .15, 'square', .06), i * 130));
     } else {
       fails++;
+      $('lose-title').textContent = endReason === 'shields' ? 'ÉLIMINÉ !' : 'RATÉ !';
       $('lose-score').textContent = score;
+      $('lose-acc').textContent = acc; $('lose-hits').textContent = hits;
       $('skip').hidden = fails < 3;
       show('s-lose');
       beep(300, .4, 'sawtooth', .05, 80);
     }
     const data = await sendScore(name, score);
     const rk = rankOf(data, name);
-    rankEl.textContent = rk ? `Ton rang : #${rk} sur ${data.scores.length}` : (SCORES_URL ? '' : '');
+    rankEl.textContent = rk ? `Ton rang : #${rk} sur ${data.scores.length}` : '';
   }
 
   $('skip').addEventListener('click', (e) => {
     e.preventDefault();
     $('win-name').textContent = name; $('win-score').textContent = score;
+    $('win-acc').textContent = shots ? Math.round(hits * 100 / shots) + '%' : '0%'; $('win-hits').textContent = hits;
     setSms(); show('s-win');
   });
+
+  function playerHit() {
+    shields--; combo = 0; redFlash = .35; shake = .3;
+    beep(120, .35, 'sawtooth', .08, 50);
+    try { navigator.vibrate && navigator.vibrate(120); } catch (e) {}
+    popups.push({ x: W / 2, y: 150, txt: 'TOUCHÉ !', life: .9, c: '#FF3B4E' });
+    setHud();
+    if (shields <= 0) { endReason = 'shields'; end(); }
+  }
 
   // ---- Tir ----
   cv.addEventListener('pointerdown', (e) => {
@@ -316,121 +366,197 @@
     const b = cv.getBoundingClientRect();
     const x = (e.clientX - b.left) * W / b.width;
     const y = (e.clientY - b.top) * H / b.height;
-    ship.tx = Math.max(18, Math.min(W - 18, x));
-    ship.flash = .08;
-    beams.push({ x, y, life: .14 });
-    beep(1200, .09, 'square', .035, 300);
+    if (reloading > 0) { beep(90, .05, 'square', .04); return; }
+    gunTx = Math.max(34, Math.min(W - 34, x));
+    gunKick = .1; shots++; ammo--;
+    beams.push({ x, y, life: .12 });
+    beep(1400, .1, 'square', .035, 260);
     let hit = false;
-    for (let i = targets.length - 1; i >= 0; i--) {
-      const t = targets[i];
-      if (Math.hypot(t.x - x, t.y - y) <= t.r + 3) {
+    for (let i = foes.length - 1; i >= 0; i--) {
+      const f = foes[i];
+      if (f.phase === 'hit' || f.phase === 'down') continue;
+      const bx = foeBox(f);
+      if (bx.h < 3) continue;
+      if (x >= bx.left - 3 && x <= bx.left + bx.w + 3 && y >= bx.top - 3 && y <= bx.top + bx.h + 2) {
         hit = true;
-        if (t.kind === 'ally') {
-          score = Math.max(0, score - 3); combo = 0; shake = .25;
-          popups.push({ x: t.x, y: t.y, txt: '-3', life: .8, c: '#3EC8FF' });
+        f.phase = 'hit'; f.t = 0;
+        const cx = bx.left + bx.w / 2, cy = bx.top + 9 * bx.s;
+        if (f.kind === 'mate') {
+          score = Math.max(0, score - 3); combo = 0; shake = .2;
+          popups.push({ x: cx, y: bx.top, txt: '-3', life: .8, c: '#39FF6A' });
+          popups.push({ x: W / 2, y: 60, txt: 'ÉQUIPIER !', life: .9, c: '#39FF6A' });
           beep(160, .3, 'sawtooth', .07, 60);
         } else {
-          combo++;
-          const pts = (t.kind === 'gold' ? 3 : 1) * mult();
+          hits++; combo++;
+          const pts = (f.kind === 'marc' ? 3 : 1) * mult();
           score += pts;
-          popups.push({ x: t.x, y: t.y, txt: '+' + pts, life: .7, c: t.kind === 'gold' ? '#FFD23F' : '#39FF6A' });
-          beep(t.kind === 'gold' ? 980 : 520 + mult() * 80, .12, 'triangle', .07, t.kind === 'gold' ? 1600 : 900);
+          popups.push({ x: cx, y: bx.top, txt: '+' + pts, life: .7, c: f.kind === 'marc' ? '#FFD23F' : '#FFFFFF' });
+          beep(f.kind === 'marc' ? 980 : 520 + mult() * 80, .14, 'triangle', .07, f.kind === 'marc' ? 1600 : 900);
           if (combo % 5 === 0 && mult() > 1) popups.push({ x: W / 2, y: 60, txt: 'COMBO x' + mult(), life: 1, c: '#FFD23F' });
         }
-        for (let k = 0; k < 14; k++) {
-          const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 60;
-          parts.push({ x: t.x, y: t.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5,
-            c: t.kind === 'gold' ? '#FFD23F' : t.kind === 'ally' ? '#3EC8FF' : (k % 2 ? '#FF4FA3' : '#FFFFFF') });
+        for (let k = 0; k < 12; k++) {
+          const a = Math.random() * Math.PI * 2, v = 25 + Math.random() * 50;
+          parts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .45, c: k % 2 ? VEST[f.kind] : '#FFFFFF' });
         }
-        targets.splice(i, 1);
         break;
       }
     }
     if (!hit && combo > 0) { combo = 0; popups.push({ x, y, txt: 'RATÉ', life: .5, c: '#FF4FA3' }); }
+    if (ammo <= 0) { reloading = RELOAD; beep(220, .15, 'square', .04, 440); }
     setHud();
   }, { passive: false });
 
   // ---- Dessin ----
   function px(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 
-  function disc(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill(); }
-
-  function drawTarget(t) {
-    if (t.kind === 'ally') {
-      disc(t.x, t.y, t.r, '#FFFFFF');
-      disc(t.x, t.y, t.r - 2, '#3EC8FF');
-      const ox = Math.round(t.x) - 3, oy = Math.round(t.y) - 3;
-      HEART.forEach((row, r) => [...row].forEach((k, c) => { if (k !== '.') px(ox + c, oy + r, 1, 1, '#FF4FA3'); }));
-      return;
+  function drawSprite(map, pal, ox, oy, s, maxY) {
+    for (let r = 0; r < map.length; r++) {
+      const yy = oy + r * s;
+      if (maxY !== undefined && yy >= maxY) break;
+      for (let c = 0; c < map[r].length; c++) {
+        const k = map[r][c];
+        if (k !== '.' && pal[k]) px(ox + c * s, yy, s, s, pal[k]);
+      }
     }
-    const c1 = t.kind === 'gold' ? '#FFD23F' : '#FF4FA3';
-    const rings = t.kind === 'gold' ? [t.r, t.r * .55] : [t.r, t.r * .66, t.r * .33];
-    rings.forEach((r, i) => disc(t.x, t.y, r, i % 2 ? '#FFFFFF' : c1));
-    if (t.kind === 'gold') { ctx.fillStyle = '#0A0E27'; ctx.font = '6px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('9', Math.round(t.x) + .5, Math.round(t.y) + 1); }
   }
 
-  function drawShip(dt) {
-    const S = 2;
-    ship.t += dt;
-    ship.x += (ship.tx - ship.x) * Math.min(1, dt * 10);
-    const ox = Math.round(ship.x) - 17, oy = SHIP_Y + Math.round(Math.sin(ship.t * 3) * 1.5);
-    const f = 4 + Math.floor(Math.random() * 7);
-    px(ox + 14, oy + 28, 6, f, '#FF4FA3');
-    px(ox + 15, oy + 28, 4, f - 1, '#FFD23F');
-    px(ox + 16, oy + 28, 2, f + 2, '#FFFFFF');
-    px(ox + 7, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
-    px(ox + 24, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
-    for (let r = 0; r < SHIP.length; r++)
-      for (let c = 0; c < SHIP[r].length; c++) {
-        const k = SHIP[r][c];
-        if (k !== '.') px(ox + c * S, oy + r * S, S, S, PAL[k]);
-      }
-    if (ship.flash > 0) {
-      ship.flash -= dt;
-      px(ox, oy + 7, 6, 6, '#FFFFFF'); px(ox + 28, oy + 7, 6, 6, '#FFFFFF');
+  function drawArena(ts) {
+    // murs
+    px(0, 0, W, HORIZON, '#0D1233');
+    for (let x = 0; x < W; x += 12) px(x, 0, 1, HORIZON, '#141A45');
+    const pulse = 0.55 + Math.sin(ts / 300) * 0.25;
+    px(0, 18, W, 2, `rgba(255,79,163,${pulse})`);
+    px(0, 52, W, 2, `rgba(62,200,255,${pulse})`);
+    // néons "LASER"
+    ctx.fillStyle = `rgba(57,255,106,${0.6 + Math.sin(ts / 200) * 0.2})`;
+    ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('ZONE LASER', W / 2, 40);
+    // sol
+    px(0, HORIZON, W, H - HORIZON, '#090C22');
+    for (let i = 0; i < 9; i++) { const y = HORIZON + i * i * 2.6; px(0, y, W, 1, 'rgba(57,255,106,.16)'); }
+    ctx.strokeStyle = 'rgba(57,255,106,.13)'; ctx.lineWidth = 1;
+    for (let i = -8; i <= 8; i++) { ctx.beginPath(); ctx.moveTo(W / 2 + i * 8, HORIZON); ctx.lineTo(W / 2 + i * 40, H); ctx.stroke(); }
+  }
+
+  function drawHaze(dt) {
+    haze.forEach(h => {
+      h.x += h.v * dt; if (h.x - h.r > W) h.x = -h.r;
+      ctx.fillStyle = 'rgba(120,140,255,0.05)';
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  function drawBunker(B) {
+    const l = Math.round(B.x - B.w / 2), t = B.base - B.h, r = Math.round(B.w / 2);
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(B.x, B.base, B.w / 2 + 3, 3 * B.s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#D92A45';
+    ctx.beginPath(); ctx.arc(B.x, t + r, r, Math.PI, 0); ctx.lineTo(l + B.w, B.base); ctx.lineTo(l, B.base); ctx.closePath(); ctx.fill();
+    px(l + B.w - 4 * B.s, t + r - 2, 4 * B.s, B.h - r + 2, '#A81E35');
+    px(l + 2 * B.s, t + r - 2, 3 * B.s, B.h - r - 2, '#FF7A8C');
+    px(l, t + r + 4 * B.s, B.w, 3 * B.s, '#F4F4F8');
+    px(l, B.base - 6 * B.s, B.w, 2 * B.s, '#F4F4F8');
+  }
+
+  function drawFoe(f, ts) {
+    const bx = foeBox(f);
+    if (bx.h <= 0) return;
+    const aiming = f.phase === 'aim';
+    const blink = aiming && Math.floor(ts / 90) % 2 === 0;
+    const flashHit = f.phase === 'hit' && Math.floor(f.t * 20) % 2 === 0;
+    const vest = flashHit ? '#FFFFFF' : VEST[f.kind];
+    const pal = {
+      H: f.kind === 'marc' ? '#B8901A' : '#262C52',
+      M: aiming ? (blink ? '#FF3B4E' : '#FF9AA4') : (f.kind === 'mate' ? '#B8FFC9' : '#3EC8FF'),
+      K: '#E8B48A', A: '#262C52', V: vest,
+      X: f.phase === 'hit' ? '#2A3570' : (Math.floor(ts / 250) % 2 ? '#FFFFFF' : '#DDE4FF'),
+      P: '#3A3F66'
+    };
+    drawSprite(PLAYER, pal, bx.left, bx.top, bx.s);
+    if (f.kind === 'marc' && f.phase !== 'hit') {
+      // couronne d'anniversaire
+      const s = bx.s, cx = bx.left + 6 * s;
+      px(cx - 4 * s, bx.top - 3 * s, 8 * s, 2 * s, '#FFD23F');
+      px(cx - 4 * s, bx.top - 5 * s, s, 2 * s, '#FFD23F'); px(cx - s / 2, bx.top - 6 * s, s, 3 * s, '#FFD23F'); px(cx + 3 * s, bx.top - 5 * s, s, 2 * s, '#FFD23F');
     }
-    return { l: { x: ox + 3, y: oy + 10 }, r: { x: ox + 31, y: oy + 10 } };
+    if (aiming) {
+      // pistolet pointé + alerte
+      const s = bx.s, gx = f.side > 0 ? bx.left - 3 * s : bx.left + 12 * s;
+      px(gx, bx.top + 8 * s, 3 * s, 2 * s, '#262C52');
+      if (blink) px(f.side > 0 ? gx - s : gx + 3 * s, bx.top + 8 * s, s, s, '#FF3B4E');
+      ctx.fillStyle = blink ? '#FF3B4E' : '#FFD23F'; ctx.font = (6 * s) + 'px "Press Start 2P", monospace'; ctx.textAlign = 'center';
+      ctx.fillText('!', bx.left + 6 * s, bx.top - 2 * s);
+    }
+  }
+
+  function drawGun(dt) {
+    gunX += (gunTx - gunX) * Math.min(1, dt * 8);
+    if (gunKick > 0) gunKick -= dt;
+    const S = 3, gw = 17 * S;
+    const ox = Math.round(gunX - gw / 2), oy = H - 13 * S + (gunKick > 0 ? 4 : 0) + 4;
+    drawSprite(GUN, { R: reloading > 0 ? '#555B88' : '#FF3B4E', D: '#1B2048', G: '#2BD458', C: reloading > 0 ? '#555B88' : '#3EC8FF', W: '#FFFFFF', K: '#3A3F66' }, ox, oy, S);
+    if (gunKick > 0) { px(ox + 7 * S, oy - 3 * S, 3 * S, 3 * S, '#FFFFFF'); }
+    return { x: ox + 8.5 * S, y: oy + S };
   }
 
   function frame(ts) {
     const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
-
     ctx.save();
     if (shake > 0) { shake -= dt; ctx.translate(Math.round((Math.random() - .5) * 4), Math.round((Math.random() - .5) * 4)); }
 
-    px(-4, -4, W + 8, H + 8, '#0A0E27');
-    stars.forEach(s => { s.y += s.v * dt; if (s.y > H) { s.y = 0; s.x = Math.random() * W; } px(s.x, s.y, s.s, s.s, s.s > 1 ? '#3EC8FF' : '#56608F'); });
-    for (let i = 0; i < 6; i++) { const y = H - 40 + i * i * 1.6; px(0, y, W, 1, 'rgba(57,255,106,.25)'); }
-    for (let i = -6; i <= 6; i++) { ctx.strokeStyle = 'rgba(57,255,106,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W / 2 + i * 6, H - 40); ctx.lineTo(W / 2 + i * 34, H); ctx.stroke(); }
+    drawArena(ts);
 
     if (state === 'play') {
       timeLeft -= dt;
       $('time').textContent = Math.max(0, Math.ceil(timeLeft));
+      if (reloading > 0) { reloading -= dt; if (reloading <= 0) { ammo = CLIP; reloading = 0; beep(660, .08, 'square', .04); setHud(); } }
       spawnIn -= dt;
       const elapsed = DURATION - timeLeft;
-      if (spawnIn <= 0 && targets.length < 7) { spawn(); spawnIn = Math.max(0.28, 0.6 - elapsed * 0.01) + Math.random() * 0.3; }
-      if (timeLeft <= 0) end();
+      if (spawnIn <= 0) { spawn(); spawnIn = Math.max(0.3, 0.75 - elapsed * 0.015) + Math.random() * 0.3; }
+      if (timeLeft <= 0) { endReason = 'time'; end(); }
     }
 
-    targets.forEach(t => {
-      t.t += dt; t.x += t.vx * dt;
-      t.y += t.vy * dt + Math.sin(t.t * 5) * t.wob;
-      if (t.y < 14 || t.y > H - 80) t.vy *= -1;
+    // logique des adversaires
+    foes.forEach(f => {
+      f.t += dt;
+      if (f.phase === 'up') { f.up = Math.min(1, f.up + dt / 0.15); if (f.up >= 1) { f.phase = 'stay'; f.t = 0; } }
+      else if (f.phase === 'stay') { if (f.t >= f.stay) { f.t = 0; f.phase = f.kind === 'enemy' && state === 'play' ? 'aim' : 'down'; } }
+      else if (f.phase === 'aim') {
+        if (f.t >= f.aim) {
+          const bx = foeBox(f);
+          enemyShots.push({ x: bx.left + 6 * bx.s, y: bx.top + 9 * bx.s, life: .15 });
+          if (state === 'play') playerHit();
+          f.phase = 'down'; f.t = 0;
+        }
+      }
+      else if (f.phase === 'hit') { if (f.t > .35) { f.phase = 'down'; } }
+      else if (f.phase === 'down') { f.up = Math.max(0, f.up - dt / 0.15); }
     });
-    targets = targets.filter(t => t.x > -30 && t.x < W + 30);
-    targets.forEach(drawTarget);
+    foes = foes.filter(f => !(f.phase === 'down' && f.up <= 0));
 
-    const guns = drawShip(dt);
+    // rangée du fond puis rangée de devant
+    [[0, 1, 2], [3, 4]].forEach(row => {
+      foes.filter(f => row.includes(f.b)).forEach(f => drawFoe(f, ts));
+      row.forEach(i => drawBunker(BUNKERS[i]));
+      if (row[0] === 0) drawHaze(dt);
+    });
+
+    // tirs adverses
+    enemyShots.forEach(s => {
+      s.life -= dt;
+      ctx.strokeStyle = `rgba(255,59,78,${Math.max(0, s.life / .15)})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(W / 2, H + 10); ctx.stroke();
+    });
+    enemyShots = enemyShots.filter(s => s.life > 0);
+
+    const muzzle = drawGun(dt);
     beams.forEach(b => {
       b.life -= dt;
-      const a = Math.max(0, b.life / .14);
-      [guns.l, guns.r].forEach(g => {
-        ctx.strokeStyle = 'rgba(57,255,106,' + (a * .35) + ')'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-        ctx.strokeStyle = 'rgba(220,255,230,' + a + ')'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      });
-      const s2 = 2 + Math.round(a * 3);
+      const a = Math.max(0, b.life / .12);
+      ctx.strokeStyle = `rgba(57,255,106,${a * .35})`; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(muzzle.x, muzzle.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(230,255,235,${a})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(muzzle.x, muzzle.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      const s2 = 2 + Math.round(a * 4);
       px(b.x - s2 / 2, b.y - s2 / 2, s2, s2, '#FFFFFF');
     });
     beams = beams.filter(b => b.life > 0);
@@ -438,12 +564,21 @@
     parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; px(p.x, p.y, 2, 2, p.c); });
     parts = parts.filter(p => p.life > 0);
 
-    popups.forEach(p => { p.life -= dt; p.y -= 20 * dt; ctx.fillStyle = p.c; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
+    ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    popups.forEach(p => { p.life -= dt; p.y -= 18 * dt; ctx.fillStyle = p.c; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
     popups = popups.filter(p => p.life > 0);
+
+    if (state === 'play' && reloading > 0) {
+      ctx.fillStyle = Math.floor(ts / 150) % 2 ? '#FFD23F' : '#FFFFFF';
+      ctx.fillText('RECHARGE...', W / 2, 214);
+    }
+
+    if (redFlash > 0) { redFlash -= dt; ctx.fillStyle = `rgba(255,59,78,${redFlash})`; ctx.fillRect(-4, -4, W + 8, H + 8); }
 
     ctx.restore();
     requestAnimationFrame(frame);
   }
+  setHud();
   requestAnimationFrame(frame);
 
   // ---- Écrans ----
