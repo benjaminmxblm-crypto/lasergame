@@ -12,16 +12,17 @@
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',monospace;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
   body{display:flex;justify-content:center;align-items:flex-start;min-height:100%}
   .wrap{width:100%;max-width:480px;padding:12px;display:flex;flex-direction:column;gap:10px}
-  .hud{display:flex;justify-content:space-between;font-size:12px;line-height:1.6;padding:8px 10px;border:3px solid var(--neon);border-radius:6px;box-shadow:0 0 12px rgba(57,255,106,.35)}
+  .hud{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;line-height:1.6;padding:8px 10px;border:3px solid var(--neon);border-radius:6px;box-shadow:0 0 12px rgba(57,255,106,.35)}
   .hud b{color:var(--neon);font-weight:400}
+  .hud .c b{color:var(--gold)}
   .hud .t b{color:var(--pink)}
   .stage{position:relative;width:100%;aspect-ratio:2/3;border:3px solid var(--cyan);border-radius:6px;overflow:hidden;box-shadow:0 0 16px rgba(62,200,255,.35);touch-action:none}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
   .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
-  .screen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;background:rgba(10,14,39,.92)}
+  .screen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;text-align:center;background:rgba(10,14,39,.94);overflow-y:auto}
   .screen[hidden]{display:none}
   h1{margin:0;font-size:22px;line-height:1.4;color:var(--neon);text-shadow:0 0 10px var(--neon);font-weight:400}
-  h2{margin:0;font-size:16px;line-height:1.5;font-weight:400}
+  h2{margin:0;font-size:15px;line-height:1.5;font-weight:400}
   p{margin:0;font-size:10px;line-height:1.9}
   .pink{color:var(--pink)} .cyan{color:var(--cyan)} .gold{color:var(--gold)} .green{color:var(--neon)}
   label{font-size:10px;line-height:1.6}
@@ -30,71 +31,113 @@
   button,.btn{font-family:inherit;font-size:13px;line-height:1.4;min-height:48px;padding:14px 18px;border:0;border-radius:4px;background:var(--neon);color:#0A0E27;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;width:100%;max-width:300px;box-shadow:0 4px 0 #1C9E43}
   button:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1C9E43}
   button:focus-visible,.btn:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
-  .btn.alt,button.alt{background:transparent;color:var(--ink);border:3px solid var(--pink);box-shadow:none;font-size:10px}
-  .legend{display:flex;gap:14px;justify-content:center;font-size:9px;line-height:1.6;align-items:center}
-  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
+  .alt{background:transparent!important;color:var(--ink)!important;border:3px solid var(--pink)!important;box-shadow:none!important;font-size:10px!important}
+  .gold-btn{background:var(--gold);box-shadow:0 4px 0 #B8901A}
+  .legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:320px;font-size:8px;line-height:1.7}
+  .legend div{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .dot{display:inline-block;width:16px;height:16px;border-radius:50%}
   .card{width:100%;max-width:320px;border:3px dashed var(--cyan);padding:12px;border-radius:4px}
   .small{font-size:9px;line-height:1.8}
   .err{color:var(--pink);font-size:9px;min-height:16px}
-  .info{font-size:9px;line-height:1.9;text-align:center;opacity:.95}
+  .info{font-size:9px;line-height:1.9;text-align:center}
+  ol.board{list-style:none;margin:0;padding:0;width:100%;max-width:320px;display:flex;flex-direction:column;gap:6px}
+  ol.board li{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;font-size:10px;line-height:1.6;padding:8px 10px;border:2px solid #2A3570;border-radius:4px;text-align:left}
+  ol.board li.me{border-color:var(--neon);box-shadow:0 0 10px rgba(57,255,106,.4)}
+  ol.board li:nth-child(1) .rk{color:var(--gold)}
+  ol.board li:nth-child(2) .rk{color:#D9DEF2}
+  ol.board li:nth-child(3) .rk{color:#FF9B54}
+  ol.board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ol.board .sc{color:var(--neon)}
+  .rank{font-size:10px;color:var(--gold);min-height:18px}
 </style>
 </head>
 <body>
 <main class="wrap">
   <div class="hud" aria-live="polite">
-    <span>SCORE <b id="score">0</b>/<span id="goal">15</span></span>
+    <span>SCORE <b id="score">0</b></span>
+    <span class="c">COMBO <b id="combo">x1</b></span>
     <span class="t">TEMPS <b id="time">30</b></span>
   </div>
 
   <div class="stage">
     <canvas id="cv" width="180" height="270" aria-label="Zone de tir : touche les cibles"></canvas>
 
-    <!-- Écran d'accueil -->
+    <!-- Accueil -->
     <section class="screen" id="s-start">
       <p class="pink">★ MISSION SECRÈTE ★</p>
       <h1>ANNIV<br>DE MARC</h1>
-      <p>Pour confirmer ta venue,<br>réussis l'entraînement&nbsp;!</p>
+      <p>Marque <span class="green" id="goal-a">25</span> points en 30 s<br>pour confirmer ta venue&nbsp;!</p>
       <div class="legend">
-        <span><span class="dot" style="background:#FF4FA3"></span>+1</span>
-        <span><span class="dot" style="background:#FFD23F"></span>+3</span>
+        <div><span class="dot" style="background:#FF4FA3"></span>CIBLE<br>+1</div>
+        <div><span class="dot" style="background:#FFD23F"></span>BONUS 9<br>+3</div>
+        <div><span class="dot" style="background:#3EC8FF;box-shadow:inset 0 0 0 4px #fff"></span>ALLIÉ<br><span class="pink">−3</span></div>
       </div>
-      <p class="cyan">Touche <span id="goal2">15</span> points<br>en 30 secondes</p>
+      <p class="small cyan">Enchaîne sans rater :<br>COMBO x2, x3, x4&nbsp;!</p>
       <form id="f-start" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
         <label for="name">Ton prénom, agent&nbsp;:</label>
         <input id="name" name="name" maxlength="16" autocomplete="given-name" required>
         <div class="err" id="err" role="alert"></div>
         <button type="submit">▶ JOUER</button>
       </form>
+      <button type="button" class="alt open-board">CLASSEMENT</button>
     </section>
 
     <!-- Défaite -->
     <section class="screen" id="s-lose" hidden>
-      <h1 class="pink" style="color:var(--pink);text-shadow:0 0 10px var(--pink)">RATÉ&nbsp;!</h1>
+      <h1 style="color:var(--pink);text-shadow:0 0 10px var(--pink)">RATÉ&nbsp;!</h1>
       <h2>Score&nbsp;: <span id="lose-score">0</span></h2>
-      <p>Il te faut <span class="green" id="goal3">15</span> points.<br>Vise bien, agent&nbsp;!</p>
+      <p class="rank" id="lose-rank"></p>
+      <p>Il te faut <span class="green" id="goal-b">25</span> points.<br>Vise bien, évite les alliés&nbsp;!</p>
       <button type="button" id="retry">↻ REJOUER</button>
+      <button type="button" class="alt open-board">CLASSEMENT</button>
+      <a class="small cyan" id="skip" href="#" hidden>Trop dur&nbsp;? Confirmer quand même</a>
     </section>
 
     <!-- Victoire -->
     <section class="screen" id="s-win" hidden>
       <h1>MISSION<br>RÉUSSIE&nbsp;!</h1>
       <p>Bravo agent <span class="gold" id="win-name"></span>&nbsp;!<br>Score&nbsp;: <span id="win-score">0</span></p>
+      <p class="rank" id="win-rank"></p>
       <div class="card">
         <p class="info">Samedi 12 décembre<br>de 14h à 17h<br>Zone Évasion – Shoot &amp; Games<br>Avignonet-Lauragais</p>
       </div>
       <a class="btn" id="sms-yes" href="#">✔ JE CONFIRME</a>
       <a class="btn alt" id="sms-no" href="#">Je ne pourrai pas venir</a>
-      <p class="small">Ça ouvre un SMS déjà écrit.<br>Il suffit d'appuyer sur Envoyer.<br>Sinon, écris au <span class="green">06 11 70 23 12</span></p>
-      <button type="button" class="alt" id="replay" style="max-width:200px">↻ Rejouer</button>
+      <p class="small">Ça ouvre un SMS déjà écrit&nbsp;:<br>appuie sur Envoyer.<br>Sinon, écris au <span class="green">06 11 70 23 12</span></p>
+      <div style="display:flex;gap:10px;width:100%;max-width:300px">
+        <button type="button" class="alt" id="replay">↻ Rejouer</button>
+        <button type="button" class="alt open-board">Classement</button>
+      </div>
+    </section>
+
+    <!-- Classement -->
+    <section class="screen" id="s-board" hidden style="justify-content:flex-start">
+      <h1 class="gold" style="color:var(--gold);text-shadow:0 0 10px var(--gold);margin-top:6px">CLASSEMENT</h1>
+      <p class="small green" id="board-thanks" hidden></p>
+      <p class="small cyan">Meilleur score de chaque agent</p>
+      <p class="small" id="board-msg" role="status">Chargement…</p>
+      <ol class="board" id="board"></ol>
+      <button type="button" id="board-back" style="margin-top:4px">← RETOUR</button>
     </section>
   </div>
 </main>
 
 <script>
 (() => {
+  // ====== RÉGLAGES ======
+  // Colle ici l'adresse de ton script Google (finit par /exec) pour activer le classement :
+  const SCORES_URL = 'https://script.google.com/macros/s/AKfycbz9KSzOODgQ88HMPDQoek_z3Ibzyv9_EBp8CWva-hTVBkfhqdotapZl2wyihw4rTpVJ/exec';
   const PHONE = '+33611702312';
-  const GOAL = 15, DURATION = 30;
+  const GOAL = 25, DURATION = 30;
+  // ======================
+
   const W = 180, H = 270;
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const $ = (id) => document.getElementById(id);
+  ['goal-a','goal-b'].forEach(id => $(id).textContent = GOAL);
+
   const SHIP = [
     '........W........',
     '.......WCW.......',
@@ -111,20 +154,16 @@
     'G...DD.CCC.DD...G',
     '.......DWD.......'
   ];
+  const HEART = ['.PP.PP.', 'PPPPPPP', 'PPPPPPP', '.PPPPP.', '..PPP..', '...P...'];
   const PAL = { W: '#FFFFFF', C: '#3EC8FF', P: '#FF4FA3', G: '#39FF6A', D: '#2A3570' };
   const SHIP_Y = 226;
   const ship = { x: 90, tx: 90, flash: 0, t: 0 };
-  const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
-  const $ = (id) => document.getElementById(id);
-  ['goal','goal2','goal3'].forEach(id => $(id).textContent = GOAL);
 
-  let state = 'menu', name = '', score = 0, timeLeft = DURATION;
-  let targets = [], beams = [], parts = [], popups = [], spawnIn = 0, last = 0;
+  let state = 'menu', name = '', score = 0, combo = 0, timeLeft = DURATION, fails = 0, lastScreen = 's-start';
+  let targets = [], beams = [], parts = [], popups = [], spawnIn = 0, last = 0, shake = 0;
   const stars = Array.from({length: 40}, () => ({ x: Math.random()*W, y: Math.random()*H, s: Math.random() < .2 ? 2 : 1, v: 4 + Math.random()*10 }));
 
-  // ---- Sons rétro (facultatifs) ----
+  // ---- Sons rétro ----
   let ac = null;
   function beep(freq, dur, type, vol, slide) {
     try {
@@ -139,47 +178,136 @@
   }
 
   function show(id) {
-    ['s-start','s-lose','s-win'].forEach(s => $(s).hidden = (s !== id));
+    ['s-start','s-lose','s-win','s-board'].forEach(s => $(s).hidden = (s !== id));
+    if (id && id !== 's-board') lastScreen = id;
+  }
+
+  const mult = () => Math.min(4, 1 + Math.floor(combo / 5));
+  function setHud() {
+    $('score').textContent = score;
+    $('combo').textContent = 'x' + mult();
   }
 
   function start() {
-    score = 0; timeLeft = DURATION; ship.x = ship.tx = 90; targets = []; beams = []; parts = []; popups = [];
-    spawnIn = 0.3; state = 'play'; show(null);
-    $('score').textContent = 0; $('time').textContent = DURATION;
+    score = 0; combo = 0; timeLeft = DURATION; ship.x = ship.tx = 90;
+    targets = []; beams = []; parts = []; popups = [];
+    spawnIn = 0.3; state = 'play'; show(null); setHud();
+    $('time').textContent = DURATION;
     beep(440, .08); setTimeout(() => beep(660, .08), 90); setTimeout(() => beep(880, .12), 180);
   }
 
+  // ---- Cibles : plus petites, plus rapides, et des alliés à ne pas toucher ----
   function spawn() {
-    const gold = Math.random() < 0.15;
-    const r = gold ? 9 : 13;
+    const elapsed = DURATION - timeLeft;
+    const roll = Math.random();
+    const kind = roll < 0.12 ? 'gold' : roll < 0.32 ? 'ally' : 'pink';
+    const r = kind === 'gold' ? 7 : 10;
     const fromLeft = Math.random() < .5;
-    const speed = (gold ? 34 : 18) + Math.random() * 18 + (DURATION - timeLeft) * 0.6;
+    const base = kind === 'gold' ? 55 : 30;
+    const speed = base + Math.random() * 25 + elapsed * 1.6;
     targets.push({
       x: fromLeft ? -r : W + r,
-      y: 24 + Math.random() * (H - 110),
+      y: 24 + Math.random() * (H - 120),
       vx: (fromLeft ? 1 : -1) * speed,
-      vy: (Math.random() - .5) * 14,
-      r, gold, t: 0
+      vy: (Math.random() - .5) * (20 + elapsed),
+      wob: 0.3 + Math.random() * (kind === 'gold' ? 1.4 : 0.8),
+      r, kind, t: 0
     });
   }
 
-  function end() {
+  // ---- Classement (Google Sheet) ----
+  function cleanName(n) { return String(n || '').replace(/[^\p{L}\p{N} '\-]/gu, '').trim().slice(0, 16); }
+
+  async function sendScore(n, s) {
+    if (!SCORES_URL) return null;
+    try {
+      const res = await fetch(SCORES_URL, { method: 'POST', body: JSON.stringify({ name: n, score: s }) });
+      return await res.json();
+    } catch (e) { return null; }
+  }
+
+  async function loadBoard() {
+    if (!SCORES_URL) return null;
+    try { const res = await fetch(SCORES_URL); return await res.json(); }
+    catch (e) { return null; }
+  }
+
+  function rankOf(list, n) {
+    if (!list || !list.scores) return 0;
+    const i = list.scores.findIndex(x => cleanName(x.name).toLowerCase() === n.toLowerCase());
+    return i + 1;
+  }
+
+  function renderBoard(data) {
+    const ol = $('board'); ol.textContent = '';
+    if (!SCORES_URL) { $('board-msg').textContent = 'Classement pas encore activé.'; return; }
+    if (!data || !data.scores) { $('board-msg').textContent = 'Classement indisponible pour le moment.'; return; }
+    if (!data.scores.length) { $('board-msg').textContent = 'Personne encore. Sois le premier !'; return; }
+    $('board-msg').textContent = data.scores.length + ' agent' + (data.scores.length > 1 ? 's' : '') + ' en lice';
+    data.scores.slice(0, 20).forEach((x, i) => {
+      const li = document.createElement('li');
+      if (name && cleanName(x.name).toLowerCase() === name.toLowerCase()) li.className = 'me';
+      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = '#' + (i + 1);
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = cleanName(x.name);
+      const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = Number(x.score) || 0;
+      li.append(rk, nm, sc); ol.append(li);
+    });
+  }
+
+  async function openBoard() {
+    show('s-board');
+    $('board').textContent = '';
+    $('board-msg').textContent = SCORES_URL ? 'Chargement…' : '';
+    renderBoard(await loadBoard());
+  }
+  document.querySelectorAll('.open-board').forEach(b => b.addEventListener('click', () => { $('board-thanks').hidden = true; openBoard(); }));
+
+  // Après la réponse (SMS), on affiche directement le classement
+  function afterReply(coming) {
+    const t = $('board-thanks');
+    t.textContent = coming
+      ? `Merci agent ${name} ! N'oublie pas d'envoyer le SMS.`
+      : `Dommage ${name} ! N'oublie pas d'envoyer le SMS.`;
+    t.hidden = false;
+    setTimeout(openBoard, 300);
+  }
+  $('sms-yes').addEventListener('click', () => afterReply(true));
+  $('sms-no').addEventListener('click', () => afterReply(false));
+  $('board-back').addEventListener('click', () => show(lastScreen));
+
+  function setSms() {
+    const yes = `Agent ${name} confirme sa présence à l'anniversaire de Marc le samedi 12 décembre de 14h à 17h ! (score : ${score})`;
+    const no  = `Agent ${name} ne pourra pas venir à l'anniversaire de Marc le 12 décembre. Désolé !`;
+    $('sms-yes').href = `sms:${PHONE}?&body=${encodeURIComponent(yes)}`;
+    $('sms-no').href  = `sms:${PHONE}?&body=${encodeURIComponent(no)}`;
+  }
+
+  async function end() {
     state = 'over';
-    if (score >= GOAL) {
-      $('win-name').textContent = name;
-      $('win-score').textContent = score;
-      const yes = `Agent ${name} confirme sa présence à l'anniversaire de Marc le samedi 12 décembre de 14h à 17h ! (score : ${score})`;
-      const no  = `Agent ${name} ne pourra pas venir à l'anniversaire de Marc le 12 décembre. Désolé !`;
-      $('sms-yes').href = `sms:${PHONE}?&body=${encodeURIComponent(yes)}`;
-      $('sms-no').href  = `sms:${PHONE}?&body=${encodeURIComponent(no)}`;
-      show('s-win');
+    const won = score >= GOAL;
+    const rankEl = won ? $('win-rank') : $('lose-rank');
+    rankEl.textContent = SCORES_URL ? 'Envoi du score…' : '';
+    if (won) {
+      $('win-name').textContent = name; $('win-score').textContent = score;
+      setSms(); show('s-win');
       [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .15, 'square', .06), i * 130));
     } else {
+      fails++;
       $('lose-score').textContent = score;
+      $('skip').hidden = fails < 3;
       show('s-lose');
       beep(300, .4, 'sawtooth', .05, 80);
     }
+    const data = await sendScore(name, score);
+    const rk = rankOf(data, name);
+    rankEl.textContent = rk ? `Ton rang : #${rk} sur ${data.scores.length}` : (SCORES_URL ? '' : '');
   }
+
+  $('skip').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('win-name').textContent = name; $('win-score').textContent = score;
+    setSms(); show('s-win');
+  });
 
   // ---- Tir ----
   cv.addEventListener('pointerdown', (e) => {
@@ -192,36 +320,53 @@
     ship.flash = .08;
     beams.push({ x, y, life: .14 });
     beep(1200, .09, 'square', .035, 300);
+    let hit = false;
     for (let i = targets.length - 1; i >= 0; i--) {
       const t = targets[i];
-      if (Math.hypot(t.x - x, t.y - y) <= t.r + 4) {
-        const pts = t.gold ? 3 : 1;
-        score += pts;
-        $('score').textContent = score;
-        popups.push({ x: t.x, y: t.y, txt: '+' + pts, life: .7, c: t.gold ? '#FFD23F' : '#39FF6A' });
+      if (Math.hypot(t.x - x, t.y - y) <= t.r + 3) {
+        hit = true;
+        if (t.kind === 'ally') {
+          score = Math.max(0, score - 3); combo = 0; shake = .25;
+          popups.push({ x: t.x, y: t.y, txt: '-3', life: .8, c: '#3EC8FF' });
+          beep(160, .3, 'sawtooth', .07, 60);
+        } else {
+          combo++;
+          const pts = (t.kind === 'gold' ? 3 : 1) * mult();
+          score += pts;
+          popups.push({ x: t.x, y: t.y, txt: '+' + pts, life: .7, c: t.kind === 'gold' ? '#FFD23F' : '#39FF6A' });
+          beep(t.kind === 'gold' ? 980 : 520 + mult() * 80, .12, 'triangle', .07, t.kind === 'gold' ? 1600 : 900);
+          if (combo % 5 === 0 && mult() > 1) popups.push({ x: W / 2, y: 60, txt: 'COMBO x' + mult(), life: 1, c: '#FFD23F' });
+        }
         for (let k = 0; k < 14; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 60;
-          parts.push({ x: t.x, y: t.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5, c: t.gold ? '#FFD23F' : (k % 2 ? '#FF4FA3' : '#FFFFFF') });
+          parts.push({ x: t.x, y: t.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5,
+            c: t.kind === 'gold' ? '#FFD23F' : t.kind === 'ally' ? '#3EC8FF' : (k % 2 ? '#FF4FA3' : '#FFFFFF') });
         }
         targets.splice(i, 1);
-        beep(t.gold ? 980 : 520, .12, 'triangle', .07, t.gold ? 1600 : 900);
-        if (score >= GOAL && timeLeft > 0) { /* on laisse finir le chrono pour le fun */ }
         break;
       }
     }
+    if (!hit && combo > 0) { combo = 0; popups.push({ x, y, txt: 'RATÉ', life: .5, c: '#FF4FA3' }); }
+    setHud();
   }, { passive: false });
 
   // ---- Dessin ----
   function px(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 
+  function disc(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill(); }
+
   function drawTarget(t) {
-    const c1 = t.gold ? '#FFD23F' : '#FF4FA3', c2 = '#FFFFFF';
-    const rings = t.gold ? [t.r, t.r * .55] : [t.r, t.r * .68, t.r * .36];
-    rings.forEach((r, i) => {
-      ctx.fillStyle = i % 2 ? c2 : c1;
-      ctx.beginPath(); ctx.arc(Math.round(t.x), Math.round(t.y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill();
-    });
-    if (t.gold) { ctx.fillStyle = '#0A0E27'; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('9', Math.round(t.x) + .5, Math.round(t.y) + 1); }
+    if (t.kind === 'ally') {
+      disc(t.x, t.y, t.r, '#FFFFFF');
+      disc(t.x, t.y, t.r - 2, '#3EC8FF');
+      const ox = Math.round(t.x) - 3, oy = Math.round(t.y) - 3;
+      HEART.forEach((row, r) => [...row].forEach((k, c) => { if (k !== '.') px(ox + c, oy + r, 1, 1, '#FF4FA3'); }));
+      return;
+    }
+    const c1 = t.kind === 'gold' ? '#FFD23F' : '#FF4FA3';
+    const rings = t.kind === 'gold' ? [t.r, t.r * .55] : [t.r, t.r * .66, t.r * .33];
+    rings.forEach((r, i) => disc(t.x, t.y, r, i % 2 ? '#FFFFFF' : c1));
+    if (t.kind === 'gold') { ctx.fillStyle = '#0A0E27'; ctx.font = '6px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('9', Math.round(t.x) + .5, Math.round(t.y) + 1); }
   }
 
   function drawShip(dt) {
@@ -229,20 +374,17 @@
     ship.t += dt;
     ship.x += (ship.tx - ship.x) * Math.min(1, dt * 10);
     const ox = Math.round(ship.x) - 17, oy = SHIP_Y + Math.round(Math.sin(ship.t * 3) * 1.5);
-    // flamme du réacteur
     const f = 4 + Math.floor(Math.random() * 7);
     px(ox + 14, oy + 28, 6, f, '#FF4FA3');
     px(ox + 15, oy + 28, 4, f - 1, '#FFD23F');
     px(ox + 16, oy + 28, 2, f + 2, '#FFFFFF');
     px(ox + 7, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
     px(ox + 24, oy + 26, 3, 2 + (f >> 2), '#FFD23F');
-    // vaisseau
     for (let r = 0; r < SHIP.length; r++)
       for (let c = 0; c < SHIP[r].length; c++) {
         const k = SHIP[r][c];
         if (k !== '.') px(ox + c * S, oy + r * S, S, S, PAL[k]);
       }
-    // flash des canons
     if (ship.flash > 0) {
       ship.flash -= dt;
       px(ox, oy + 7, 6, 6, '#FFFFFF'); px(ox + 28, oy + 7, 6, 6, '#FFFFFF');
@@ -253,32 +395,30 @@
   function frame(ts) {
     const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
 
-    // fond
-    px(0, 0, W, H, '#0A0E27');
+    ctx.save();
+    if (shake > 0) { shake -= dt; ctx.translate(Math.round((Math.random() - .5) * 4), Math.round((Math.random() - .5) * 4)); }
+
+    px(-4, -4, W + 8, H + 8, '#0A0E27');
     stars.forEach(s => { s.y += s.v * dt; if (s.y > H) { s.y = 0; s.x = Math.random() * W; } px(s.x, s.y, s.s, s.s, s.s > 1 ? '#3EC8FF' : '#56608F'); });
-    // sol quadrillé
     for (let i = 0; i < 6; i++) { const y = H - 40 + i * i * 1.6; px(0, y, W, 1, 'rgba(57,255,106,.25)'); }
-    for (let i = -6; i <= 6; i++) { ctx.strokeStyle = 'rgba(57,255,106,.18)'; ctx.beginPath(); ctx.moveTo(W / 2 + i * 6, H - 40); ctx.lineTo(W / 2 + i * 34, H); ctx.stroke(); }
+    for (let i = -6; i <= 6; i++) { ctx.strokeStyle = 'rgba(57,255,106,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W / 2 + i * 6, H - 40); ctx.lineTo(W / 2 + i * 34, H); ctx.stroke(); }
 
     if (state === 'play') {
       timeLeft -= dt;
       $('time').textContent = Math.max(0, Math.ceil(timeLeft));
       spawnIn -= dt;
-      if (spawnIn <= 0 && targets.length < 5) { spawn(); spawnIn = 0.45 + Math.random() * 0.45; }
+      const elapsed = DURATION - timeLeft;
+      if (spawnIn <= 0 && targets.length < 7) { spawn(); spawnIn = Math.max(0.28, 0.6 - elapsed * 0.01) + Math.random() * 0.3; }
       if (timeLeft <= 0) end();
     }
 
-    targets.forEach(t => { t.t += dt; t.x += t.vx * dt; t.y += t.vy * dt + Math.sin(t.t * 4) * .3; if (t.y < 16 || t.y > H - 76) t.vy *= -1; });
+    targets.forEach(t => {
+      t.t += dt; t.x += t.vx * dt;
+      t.y += t.vy * dt + Math.sin(t.t * 5) * t.wob;
+      if (t.y < 14 || t.y > H - 80) t.vy *= -1;
+    });
     targets = targets.filter(t => t.x > -30 && t.x < W + 30);
     targets.forEach(drawTarget);
-
-
-
-    parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; px(p.x, p.y, 2, 2, p.c); });
-    parts = parts.filter(p => p.life > 0);
-
-    popups.forEach(p => { p.life -= dt; p.y -= 20 * dt; ctx.fillStyle = p.c; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
-    popups = popups.filter(p => p.life > 0);
 
     const guns = drawShip(dt);
     beams.forEach(b => {
@@ -294,6 +434,14 @@
       px(b.x - s2 / 2, b.y - s2 / 2, s2, s2, '#FFFFFF');
     });
     beams = beams.filter(b => b.life > 0);
+
+    parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; px(p.x, p.y, 2, 2, p.c); });
+    parts = parts.filter(p => p.life > 0);
+
+    popups.forEach(p => { p.life -= dt; p.y -= 20 * dt; ctx.fillStyle = p.c; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.txt, Math.round(p.x), Math.round(p.y)); });
+    popups = popups.filter(p => p.life > 0);
+
+    ctx.restore();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -301,7 +449,7 @@
   // ---- Écrans ----
   $('f-start').addEventListener('submit', (e) => {
     e.preventDefault();
-    const v = $('name').value.trim();
+    const v = cleanName($('name').value);
     if (!v) { $('err').textContent = 'Écris ton prénom !'; return; }
     $('err').textContent = '';
     name = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
